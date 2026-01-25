@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Voting DApp</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="notifications.js"></script>
+
+    <style>
+        .card {
+            max-width: 650px;
+        }
+
+        .candidate-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .candidate-card {
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            text-align: center;
+            background: #fff;
+        }
+
+        .candidate-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .party-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 12px;
+            border-radius: 8px;
+        }
+
+        .candidate-card h4 {
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .wallet-info {
+            font-size: 0.8rem;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px dashed var(--border);
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+
+        #output {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            background: #f0fdf4;
+            color: #166534;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .candidate-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px;">
+            <img src="eci_logo.png" style="width: 40px;">
+            <h2 id="t-title" style="margin: 0;">E-Voting System</h2>
+        </div>
+        <p id="t-subtitle">Secure Blockchain-based Voting Portal</p>
+
+        <div id="jurisdiction-display" style="margin-bottom: 20px; text-align: center;">
+            <div id="jurisdiction-badge"
+                style="display: inline-block; padding: 6px 16px; background: rgba(99, 102, 241, 0.1); border: 1px solid var(--primary); color: var(--primary); border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+                Loading jurisdiction...
+            </div>
+        </div>
+
+        <div id="wallet-section">
+            <button class="btn-warning" onclick="connectWallet()">
+                <span>🔗</span> <span id="t-connect-btn">Connect MetaMask Wallet</span>
+            </button>
+        </div>
+
+        <div id="wallet-display" class="wallet-info" style="display: none;">
+            <strong id="t-connected-label">Connected:</strong> <span id="wallet-address"></span>
+        </div>
+
+        <hr style="margin: 24px 0; border: 0; border-top: 1px solid var(--border);">
+
+        <div class="candidate-list">
+            <!-- Party 1 -->
+            <div class="candidate-card">
+                <img src="admk.png" alt="Party 1" class="party-logo">
+                <button class="btn-success t-vote-btn" onclick="castVote('party1', 'Party 1')">Vote</button>
+            </div>
+            <!-- Party 2 -->
+            <div class="candidate-card">
+                <img src="dmk.png" alt="Party 2" class="party-logo">
+                <button class="btn-primary t-vote-btn" onclick="castVote('party2', 'Party 2')">Vote</button>
+            </div>
+            <!-- Party 3 -->
+            <div class="candidate-card">
+                <img src="tck.jpg" alt="Party 3" class="party-logo">
+                <button class="btn-warning t-vote-btn" onclick="castVote('party3', 'Party 3')">Vote</button>
+            </div>
+            <!-- Party 4 -->
+            <div class="candidate-card">
+                <img src="bjp.jpg" alt="Party 4" class="party-logo">
+                <button class="btn-danger t-vote-btn" style="background:#ea580c; border:none;"
+                    onclick="castVote('party4', 'Party 4')">Vote</button>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <button id="t-status-btn" class="btn-ghost" onclick="checkMyVote()">My Status</button>
+            <button id="t-results-btn" class="btn-ghost" onclick="getResult()">Live Results</button>
+        </div>
+
+        <div id="output"></div>
+
+        <div style="margin-top: 24px; font-size: 0.7rem; color: var(--text-muted);">
+            <span id="t-network">Network: Sepolia Testnet</span>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            en: {
+                title: "E-Voting System",
+                subtitle: "Secure Blockchain-based Voting Portal",
+                loadingJ: "Loading jurisdiction...",
+                connectBtn: "Connect MetaMask Wallet",
+                connected: "Connected:",
+                voteBtn: "Vote",
+                statusBtn: "My Status",
+                resultsBtn: "Live Results",
+                network: "Network: Sepolia Testnet",
+                metaError: "MetaMask not installed",
+                connecting: "Wallet connected:",
+                failConnect: "Failed to connect wallet",
+                connectFirst: "Please connect wallet first",
+                submitting: "Submitting vote for",
+                recorded: "Vote recorded for",
+                alreadyVoted: "Already voted, rejected, or contract mismatch",
+                receipt: "Digital Voting Receipt",
+                voterName: "Voter Name:",
+                epicNo: "EPIC Number:",
+                connIssue: "CONNECTION ISSUE",
+                connIssueSub: "Unable to verify on-chain status. Check your network or contract address.",
+                votedTitle: "VOTED SUCCESSFULLY",
+                votedSub: "Your vote has been recorded on the blockchain network.",
+                recordedChoice: "Recorded Choice:",
+                notVotedTitle: "NOT VOTED YET",
+                notVotedSub: "You haven't cast your vote in this session yet.",
+                statusRetrieved: "Status retrieved successfully",
+                liveResults: "Live Results (Exact)",
+                totalVotes: "Total Verified Votes:",
+                reset: "Reset",
+                resetConfirm: "Reset all vote counts to zero?",
+                synced: "Results synced successfully",
+                election: "Election"
+            },
+            ta: {
+                title: "மின்-வாக்குப்பதிவு முறை",
+                subtitle: "பாதுகாப்பான பிளாக்செயின் அடிப்படையிலான வாக்குப்பதிவு போர்டல்",
+                loadingJ: "அதிகார வரம்பை ஏற்றுகிறது...",
+                connectBtn: "MetaMask வாலட்டை இணைக்கவும்",
+                connected: "இணைக்கப்பட்டுள்ளது:",
+                voteBtn: "வாக்களிக்கவும்",
+                statusBtn: "எனது நிலை",
+                resultsBtn: "நேரடி முடிவுகள்",
+                network: "நெட்வொர்க்: செப்போலியா டெஸ்ட்நெட்",
+                metaError: "MetaMask நிறுவப்படவில்லை",
+                connecting: "வாலட் இணைக்கப்பட்டுள்ளது:",
+                failConnect: "வாலட்டை இணைக்க முடியவில்லை",
+                connectFirst: "முதலில் வாலட்டை இணைக்கவும்",
+                submitting: "வாக்கைப் பதிவு செய்கிறது",
+                recorded: "வாக்குப்பதிவு வெற்றிகரமாக முடிந்தது",
+                alreadyVoted: "ஏற்கனவே வாக்களிக்கப்பட்டுள்ளது அல்லது ஒப்பந்தப் பொருத்தம் இல்லை",
+                receipt: "டிஜிட்டல் வாக்குப்பதிவு ரசீது",
+                voterName: "வாக்காளர் பெயர்:",
+                epicNo: "EPIC எண்:",
+                connIssue: "இணைப்புச் சிக்கல்",
+                connIssueSub: "பிளாக்செயினில் நிலையைச் சரிபார்க்க முடியவில்லை. நெட்வொர்க் அல்லது முகவரியைச் சரிபார்க்கவும்.",
+                votedTitle: "வெற்றிகரமாக வாக்களிக்கப்பட்டது",
+                votedSub: "உங்கள் வாக்கு பிளாக்செயின் நெட்வொர்க்கில் பதிவு செய்யப்பட்டுள்ளது.",
+                recordedChoice: "பதிவுசெய்யப்பட்ட விருப்பம்:",
+                notVotedTitle: "இன்னும் வாக்களிக்கவில்லை",
+                notVotedSub: "இந்த அமர்வில் நீங்கள் இன்னும் வாக்களிக்கவில்லை.",
+                statusRetrieved: "நிலை வெற்றிகரமாகப் பெறப்பட்டது",
+                liveResults: "நேரடி முடிவுகள் (துல்லியமானது)",
+                totalVotes: "மொத்த சரிபார்க்கப்பட்ட வாக்குகள்:",
+                reset: "மீட்டமை",
+                resetConfirm: "அனைத்து வாக்கு எண்ணிக்கைகளையும் பூஜ்ஜியத்திற்கு மீட்டமைக்கவா?",
+                synced: "முடிவுகள் வெற்றிகரமாக ஒத்திசைக்கப்பட்டன",
+                election: "தேர்தல்"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-title').textContent = t.title;
+            document.getElementById('t-subtitle').textContent = t.subtitle;
+            document.getElementById('t-connect-btn').textContent = t.connectBtn;
+            document.getElementById('t-connected-label').textContent = t.connected;
+            document.getElementById('t-status-btn').textContent = t.statusBtn;
+            document.getElementById('t-results-btn').textContent = t.resultsBtn;
+            document.getElementById('t-network').textContent = t.network;
+
+            document.querySelectorAll('.t-vote-btn').forEach(btn => btn.textContent = t.voteBtn);
+
+            // Jurisdiction Badge
+            const scope = localStorage.getItem('selectedScope') || (currentLang === 'ta' ? 'மாநில' : 'State');
+            const state = localStorage.getItem('selectedState') || 'N/A';
+            const district = localStorage.getItem('selectedDistrict') || 'N/A';
+            const taluk = localStorage.getItem('selectedTaluk') || 'N/A';
+
+            let displayScope = scope;
+            if (currentLang === 'ta') {
+                if (scope === 'Central') displayScope = 'மத்திய';
+                if (scope === 'State') displayScope = 'மாநில';
+            }
+
+            document.getElementById('jurisdiction-badge').textContent = `${displayScope} ${t.election} | ${state} | ${district} | ${taluk}`;
+        }
+
+        let provider;
+        let signer;
+        let contract;
+
+        function initGlobalCounters() {
+            const parties = ['party1', 'party2', 'party3', 'party4'];
+            parties.forEach(p => {
+                if (localStorage.getItem("total_votes_" + p) === null) {
+                    localStorage.setItem("total_votes_" + p, "0");
+                }
+            });
+        }
+
+        initGlobalCounters();
+        const contractAddress = localStorage.getItem("contractAddress");
+
+        if (!contractAddress) {
+            window.location.href = "index.html";
+        }
+
+        const abi = [
+            { "inputs": [], "name": "voteA", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+            { "inputs": [], "name": "voteB", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+            { "inputs": [], "name": "voteC", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+            { "inputs": [], "name": "voteD", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+            { "inputs": [], "name": "votesA", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+            { "inputs": [], "name": "votesB", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+            { "inputs": [], "name": "votesC", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+            { "inputs": [], "name": "votesD", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
+            { "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "hasVoted", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" }
+        ];
+
+        async function ensureSepolia() {
+            await window.ethereum.request({
+                method: "wallet_switchEthereumChain",
+                params: [{ chainId: "0xaa36a7" }]
+            });
+        }
+
+        async function connectWallet() {
+            const t = translations[currentLang];
+            if (!window.ethereum) {
+                showNotification(t.metaError, "error");
+                return;
+            }
+
+            try {
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                await ensureSepolia();
+
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(contractAddress, abi, signer);
+
+                const address = await signer.getAddress();
+                document.getElementById("wallet-address").innerText = address.slice(0, 6) + "..." + address.slice(-4);
+                document.getElementById("wallet-display").style.display = "block";
+                document.getElementById("wallet-section").style.display = "none";
+
+                showNotification(`${t.connecting} ${address.slice(0, 6)}...`, "success");
+            } catch {
+                showNotification(t.failConnect, "error");
+            }
+        }
+
+        async function castVote(partyKey, partyName) {
+            const t = translations[currentLang];
+            if (!contract) return showNotification(t.connectFirst, "warning");
+
+            const functionMap = { party1: 'voteA', party2: 'voteB', party3: 'voteC', party4: 'voteD' };
+
+            try {
+                showNotification(`${t.submitting} ${partyName}...`, "info");
+                const tx = await contract[functionMap[partyKey]]();
+                await tx.wait();
+
+                let count = parseInt(localStorage.getItem("total_votes_" + partyKey));
+                localStorage.setItem("total_votes_" + partyKey, (count + 1).toString());
+                localStorage.setItem("myLastVote", partyName);
+
+                showNotification(`${t.recorded} ${partyName}! ✅`, "success");
+            } catch (err) {
+                showNotification(t.alreadyVoted, "error");
+            }
+        }
+
+        async function checkMyVote() {
+            const t = translations[currentLang];
+            if (!provider || !contract || !signer) {
+                return showNotification(t.connectFirst, "warning");
+            }
+
+            try {
+                const address = await signer.getAddress();
+                let hasVotedOnChain = false;
+                let chainError = false;
+
+                try {
+                    hasVotedOnChain = await contract.hasVoted(address);
+                } catch (e) {
+                    chainError = true;
+                }
+
+                const name = localStorage.getItem("userName") || "Citizen";
+                const voterId = localStorage.getItem("currentVoterID") || "N/A";
+                const choice = localStorage.getItem("myLastVote");
+
+                const out = document.getElementById("output");
+                out.style.display = "block";
+                out.style.background = "#fff";
+                out.style.border = "1px solid var(--border)";
+                out.style.color = "var(--text-main)";
+                out.style.textAlign = "left";
+
+                let statusHtml = `
+                    <div style="border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 15px;">
+                        <h4 style="margin: 0; color: var(--primary);">${t.receipt}</h4>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">ID: ${address.slice(0, 10)}...</span>
+                    </div>
+                    <div style="font-size: 0.9rem; margin-bottom: 15px;">
+                        <div style="margin-bottom: 5px;"><b>${t.voterName}</b> ${name}</div>
+                        <div style="margin-bottom: 5px;"><b>${t.epicNo}</b> ${voterId.toUpperCase()}</div>
+                    </div>
+                `;
+
+                if (chainError) {
+                    statusHtml += `
+                        <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 12px; border-radius: 8px;">
+                            <div style="color: #991b1b; font-weight: 700; margin-bottom: 4px;">⚠️ ${t.connIssue}</div>
+                            <div style="font-size: 0.85rem; color: #991b1b;">${t.connIssueSub}</div>
+                        </div>
+                    `;
+                } else if (hasVotedOnChain) {
+                    statusHtml += `
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 8px;">
+                            <div style="color: #166534; font-weight: 700; margin-bottom: 4px;">✅ ${t.votedTitle}</div>
+                            <div style="font-size: 0.85rem; color: #166534;">
+                                ${t.votedSub}
+                                ${choice ? `<br><br><b>${t.recordedChoice}</b> ${choice}` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statusHtml += `
+                        <div style="background: #fff7ed; border: 1px solid #ffedd5; padding: 12px; border-radius: 8px;">
+                            <div style="color: #9a3412; font-weight: 700; margin-bottom: 4px;">⏳ ${t.notVotedTitle}</div>
+                            <div style="font-size: 0.85rem; color: #9a3412;">${t.notVotedSub}</div>
+                        </div>
+                    `;
+                }
+
+                out.innerHTML = statusHtml;
+                showNotification(t.statusRetrieved, "success");
+            } catch (err) {
+                showNotification("Error retrieving status", "error");
+            }
+        }
+
+        async function getResult() {
+            const t = translations[currentLang];
+            const counts = {
+                party1: parseInt(localStorage.getItem("total_votes_party1") || "0"),
+                party2: parseInt(localStorage.getItem("total_votes_party2") || "0"),
+                party3: parseInt(localStorage.getItem("total_votes_party3") || "0"),
+                party4: parseInt(localStorage.getItem("total_votes_party4") || "0")
+            };
+
+            const total = counts.party1 + counts.party2 + counts.party3 + counts.party4;
+            const calcPerc = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
+
+            const out = document.getElementById("output");
+            out.style.display = "block";
+            out.style.background = "#eff6ff";
+            out.style.color = "#1e40af";
+
+            let resultHtml = `
+                <div style="text-align: left;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #bfdbfe; padding-bottom: 8px;">
+                        <strong style="font-size: 0.9rem;">📊 ${t.liveResults}</strong>
+                        <button onclick="resetGlobalCounters()" style="width: auto; padding: 4px 8px; font-size: 0.7rem; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;">${t.reset}</button>
+                    </div>
+            `;
+
+            const partyInfo = [
+                { name: 'Party 1', key: 'party1', color: 'var(--success)' },
+                { name: 'Party 2', key: 'party2', color: 'var(--primary)' },
+                { name: 'Party 3', key: 'party3', color: 'var(--warning)' },
+                { name: 'Party 4', key: 'party4', color: '#ea580c' }
+            ];
+
+            partyInfo.forEach(p => {
+                const perc = calcPerc(counts[p.key]);
+                resultHtml += `
+                    <div style="margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>${p.name}</span>
+                            <span style="font-weight: 700;">${counts[p.key]} (${perc}%)</span>
+                        </div>
+                        <div style="height: 8px; background: #dbeafe; border-radius: 4px; overflow: hidden;">
+                            <div style="width: ${perc}%; height: 100%; background: ${p.color};"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultHtml += `
+                    <div style="margin-top: 12px; font-size: 0.75rem; text-align: center; color: var(--text-muted);">
+                        ${t.totalVotes} <b>${total}</b>
+                    </div>
+                </div>
+            `;
+
+            out.innerHTML = resultHtml;
+            showNotification(t.synced, "info");
+        }
+
+        function resetGlobalCounters() {
+            const t = translations[currentLang];
+            if (confirm(t.resetConfirm)) {
+                ['party1', 'party2', 'party3', 'party4'].forEach(p => localStorage.setItem("total_votes_" + p, "0"));
+                localStorage.removeItem("myLastVote");
+                getResult();
+            }
+        }
+
+        window.onload = updateUI;
+    </script>
+</body>
+
+</html>

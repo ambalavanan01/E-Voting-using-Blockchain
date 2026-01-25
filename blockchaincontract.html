@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Connection</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="notifications.js"></script>
+
+    <script>
+        const translations = {
+            en: {
+                title: "Blockchain Connection",
+                subtitle: "Connect your session to the secure voting smart contract to cast your vote.",
+                label: "Smart Contract Address",
+                help: "* Ensure this matches the deployed contract on your network.",
+                btnConnect: "Initialize Voting Session",
+                btnBack: "Back",
+                error: "Please enter a valid Ethereum contract address (0x...)",
+                success: "Connected to Blockchain Successfully"
+            },
+            ta: {
+                title: "பிளாக்செயின் இணைப்பு",
+                subtitle: "உங்கள் வாக்கை பதிவு செய்ய பாதுகாப்பான வோட்டிங் ஸ்மார்ட் ஒப்பந்தத்துடன் இணைக்கவும்.",
+                label: "ஸ்மார்ட் ஒப்பந்த முகவரி",
+                help: "* இது உங்கள் நெட்வொர்க்கில் பயன்படுத்தப்பட்ட ஒப்பந்தத்துடன் பொருந்துவதை உறுதிசெய்யவும்.",
+                btnConnect: "வாக்குப்பதிவு அமர்வைத் தொடங்கவும்",
+                btnBack: "முந்தைய பக்கம்",
+                error: "சரியான எத்தேரியம் ஒப்பந்த முகவரியை உள்ளிடவும் (0x...)",
+                success: "பிளாக்செயினுடன் வெற்றிகரமாக இணைக்கப்பட்டது"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-title').textContent = t.title;
+            document.getElementById('t-subtitle').textContent = t.subtitle;
+            document.getElementById('t-label').textContent = t.label;
+            document.getElementById('t-help').textContent = t.help;
+            document.getElementById('t-btn-connect').textContent = t.btnConnect;
+            document.getElementById('t-btn-back').textContent = t.btnBack;
+        }
+
+        function connectToBlockchain() {
+            const t = translations[currentLang];
+            const addr = document.getElementById("contract").value.trim();
+
+            if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+                showNotification(t.error, "error");
+                return;
+            }
+
+            localStorage.setItem("contractAddress", addr);
+            showNotification(t.success, "success");
+
+            setTimeout(() => {
+                window.location.href = "voting.html";
+            }, 1500);
+        }
+
+        window.addEventListener('DOMContentLoaded', updateUI);
+    </script>
+</head>
+
+<body>
+
+    <div class="card">
+        <div style="margin-bottom: 20px;">
+            <div
+                style="width: 60px; height: 60px; background: rgba(99, 102, 241, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                <span style="font-size: 30px;">🔗</span>
+            </div>
+            <h3 id="t-title">Blockchain Connection</h3>
+            <p id="t-subtitle">Connect your session to the secure voting smart contract to cast your vote.</p>
+        </div>
+
+        <div class="input-group">
+            <label id="t-label" for="contract">Smart Contract Address</label>
+            <input id="contract" placeholder="0x..." value="0x5FbDB2315678afecb367f032d93F642f64180aa3">
+            <small id="t-help" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 5px; display: block;">
+                * Ensure this matches the deployed contract on your network.
+            </small>
+        </div>
+
+        <button id="t-btn-connect" class="btn-primary" onclick="connectToBlockchain()">
+            Initialize Voting Session
+        </button>
+
+        <button id="t-btn-back" class="btn-ghost" style="margin-top: 10px;" onclick="window.history.back()">
+            Back
+        </button>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Verification</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="notifications.js"></script>
+
+    <style>
+        .scanner-container {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #0f172a;
+            margin: 20px auto;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            border: 4px solid var(--border);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+        }
+
+        #video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            /* Mirror effect */
+        }
+
+        .scan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+        }
+
+        .scan-line {
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, transparent, var(--primary), transparent);
+            position: absolute;
+            top: 0;
+            box-shadow: 0 0 15px var(--primary);
+            animation: scanMove 3s infinite linear;
+        }
+
+        .face-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: clamp(160px, 60%, 220px);
+            height: clamp(200px, 80%, 280px);
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 50% / 40%;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.4);
+        }
+
+        @media (max-width: 480px) {
+            .scanner-container {
+                height: 250px;
+            }
+        }
+
+        .scan-status {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .timer-circle {
+            width: 80px;
+            height: 80px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes scanMove {
+            0% {
+                top: 0;
+            }
+
+            50% {
+                top: 100%;
+            }
+
+            100% {
+                top: 0;
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .success-icon {
+            font-size: 50px;
+            color: var(--success);
+            display: none;
+            margin-bottom: 20px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+
+    <script>
+        const translations = {
+            en: {
+                title: "Biometric Face Scan",
+                subtitle: "Position your face within the guide and wait for the scanner.",
+                scanning: "Scanning face... Please stay still",
+                verified: "Verification Successful",
+                confirmed: "Your identity has been confirmed against government records.",
+                proceedBtn: "Proceed Next",
+                notifSuccess: "Face verification successful!"
+            },
+            ta: {
+                title: "பயோமெட்ரிக் முக ஸ்கேன்",
+                subtitle: "உங்கள் முகத்தை வழிகாட்டிக்குள் வைத்து, ஸ்கேனருக்காக காத்திருக்கவும்.",
+                scanning: "முகத்தை ஸ்கேன் செய்கிறது... தயவுசெய்து அசையாமல் இருக்கவும்",
+                verified: "சரிபார்ப்பு வெற்றிகரமாக முடிந்தது",
+                confirmed: "அரசு ஆவணங்களுடன் உங்கள் அடையாளம் உறுதிப்படுத்தப்பட்டுள்ளது.",
+                proceedBtn: "அடுத்து தொடரவும்",
+                notifSuccess: "முகச் சரிபார்ப்பு வெற்றிகரமாக முடிந்தது!"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-title').textContent = t.title;
+            document.getElementById('t-subtitle').textContent = t.subtitle;
+            document.getElementById('t-scanning').textContent = t.scanning;
+            document.getElementById('t-verified').textContent = t.verified;
+            document.getElementById('t-confirmed').textContent = t.confirmed;
+            document.getElementById('t-proceed-btn').textContent = t.proceedBtn;
+        }
+
+        let timeLeft = 5;
+        let timerInterval;
+
+        window.onload = function () {
+            updateUI();
+            startTimer();
+        };
+
+        function startTimer() {
+            const timerDisplay = document.getElementById('timer-count');
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timerDisplay) timerDisplay.innerText = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    completeVerification();
+                }
+            }, 1000);
+        }
+
+        function completeVerification() {
+            const t = translations[currentLang];
+            document.getElementById('scanning-ui').style.display = 'none';
+            document.getElementById('success-ui').style.display = 'block';
+            document.getElementById('success-icon').style.display = 'block';
+
+            showNotification(t.notifSuccess, "success");
+        }
+
+        function proceedToNext() {
+            window.location.href = "blockchaincontract.html";
+        }
+    </script>
+</head>
+
+<body>
+
+    <div class="card" style="max-width: 500px; text-align: center;">
+        <h3 id="t-title">Biometric Face Scan</h3>
+        <p id="t-subtitle">Position your face within the guide and wait for the scanner.</p>
+
+        <div class="scanner-container">
+            <video id="video-feed" autoplay playsinline muted></video>
+            <div class="scan-overlay">
+                <div class="scan-line"></div>
+                <div class="face-guide"></div>
+            </div>
+        </div>
+
+        <div id="scanning-ui" class="scan-status">
+            <div class="timer-circle">
+                <span id="timer-count" style="animation: none;">5</span>
+            </div>
+            <p id="t-scanning" style="font-weight: 600; color: var(--text-muted);">Scanning face... Please stay still
+            </p>
+        </div>
+
+        <div id="success-ui" class="scan-status" style="display: none;">
+            <div id="success-icon" class="success-icon">✅</div>
+            <h4 id="t-verified" style="color: var(--success); margin-bottom: 8px;">Verification Successful</h4>
+            <p id="t-confirmed" style="margin-bottom: 24px;">Your identity has been confirmed against government
+                records.</p>
+            <button id="t-proceed-btn" class="btn-success" onclick="proceedToNext()" style="width: 100%;">Proceed
+                Next</button>
+        </div>
+    </div>
+
+</body>
+
+</html>

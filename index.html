@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Voting System - Select Jurisdiction</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(180deg, #FF9933, #FFFFFF, #138808);
+            background-attachment: fixed;
+        }
+
+        /* Splash Screen Overlay Styles */
+        #splash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #FF9933, #FFFFFF, #138808);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
+        }
+
+        #splash-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .splash-content {
+            text-align: center;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .splash-logo {
+            width: 120px;
+            margin-bottom: 24px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Main Portal Styles */
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header img {
+            width: 80px;
+            margin-bottom: 16px;
+        }
+
+        .header h1 {
+            font-size: 2.22rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), #818cf8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .selection-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 32px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .input-group label {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+
+        select {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            font-family: inherit;
+            font-size: 1rem;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 20px;
+            transition: all 0.2s;
+            cursor: pointer;
+            background-color: white;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        select:disabled {
+            background-color: #f1f5f9;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+
+
+        .btn-proceed {
+            margin-top: 32px;
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Scope Toggle Styles */
+        .scope-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .scope-option {
+            position: relative;
+        }
+
+        .scope-option input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .scope-label {
+            display: block;
+            padding: 12px;
+            text-align: center;
+            background: #f8fafc;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .scope-option input:checked+.scope-label {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+            color: var(--primary);
+        }
+
+        .state-container,
+        .district-container,
+        .taluk-container {
+            margin-top: 24px;
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .visible-group {
+            display: block !important;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .stat-bar {
+            height: 4px;
+            width: 100%;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: var(--primary);
+            width: 33.33%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .selection-card {
+                padding: 20px;
+            }
+
+            .header img {
+                width: 60px;
+            }
+
+            .splash-logo {
+                width: 80px;
+            }
+
+            #splash-overlay h2 {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Splash Screen Overlay -->
+    <div id="splash-overlay">
+        <div class="splash-content">
+            <img src="eci_logo.png" class="splash-logo" alt="ECI Logo">
+            <h2 style="font-weight: 700; color: var(--text-main);">National E-Voting</h2>
+            <div style="margin-top: 16px; color: var(--text-muted);">
+                <span>Finalizing secure environment...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Portal Content -->
+    <div class="container" id="main-portal">
+
+
+        <div class="header">
+            <img src="eci_logo.png" alt="ECI Logo">
+            <h1 id="t-title">National E-Voting Portal</h1>
+            <p id="t-subtitle">Select your jurisdiction to begin the voting process</p>
+        </div>
+
+        <div class="selection-card">
+            <div class="stat-bar">
+                <div id="stat-fill" class="stat-fill" style="width: 0%;"></div>
+            </div>
+
+            <!-- Step 0: Language Selection -->
+            <div id="lang-group" class="visible-group">
+                <label id="t-lang-label">Choose Language / மொழியைத் தேர்ந்தெடுக்கவும்</label>
+                <div class="scope-container">
+                    <label class="scope-option">
+                        <input type="radio" name="lang" value="en" onchange="handleLanguageSelect('en')">
+                        <span class="scope-label">English</span>
+                    </label>
+                    <label class="scope-option">
+                        <input type="radio" name="lang" value="ta" onchange="handleLanguageSelect('ta')">
+                        <span class="scope-label">தமிழ்</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Step 1: Scope -->
+            <div id="scope-group" class="state-container">
+                <div class="input-group">
+                    <label id="t-scope-label">Election Scope</label>
+                    <div class="scope-container">
+                        <label class="scope-option">
+                            <input type="radio" name="scope" value="Central" onchange="handleScopeChange()">
+                            <span class="scope-label" id="t-central">Central</span>
+                        </label>
+                        <label class="scope-option">
+                            <input type="radio" name="scope" value="State" onchange="handleScopeChange()">
+                            <span class="scope-label" id="t-state">State</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="state-group" class="state-container">
+                <div class="input-group">
+                    <label for="state-select" id="t-select-state">Select State</label>
+                    <select id="state-select" onchange="handleStateChange()">
+                        <option value="" disabled selected id="t-choose-state">-- Choose State --</option>
+                        <option value="TAMIL NADU">Tamil Nadu</option>
+                        <option value="KERALA">Kerala</option>
+                        <option value="ANDHRA PRADESH">Andhra Pradesh</option>
+                        <option value="KARNATAKA">Karnataka</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="district-group" class="district-container">
+                <div class="input-group">
+                    <label for="district-select" id="t-select-district">Select District</label>
+                    <select id="district-select" onchange="handleDistrictChange()">
+                        <option value="" disabled selected id="t-choose-district">-- Choose District --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="taluk-group" class="taluk-container">
+                <div class="input-group">
+                    <label for="taluk-select" id="t-select-taluk">Select Taluk</label>
+                    <select id="taluk-select" onchange="handleTalukChange()">
+                        <option value="" disabled selected id="t-choose-taluk">-- Choose Taluk --</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="proceed-btn" class="btn-primary btn-proceed" onclick="proceedToLogin()">
+                <span id="t-proceed">Proceed to Login</span> <span>&rarr;</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Splash Screen Transition Logic
+        window.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('splash-overlay');
+            const portal = document.getElementById('main-portal');
+
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                portal.classList.add('visible');
+                // Clean up DOM after transition
+                setTimeout(() => overlay.remove(), 800);
+            }, 2500);
+        });
+
+        const electionData = {
+            "TAMIL NADU": {
+                "Ariyalur": ["Ariyalur", "Andimadam", "Sendurai"],
+                "Chengalpattu": ["Chengalpattu", "Cheyyur", "Madurantakam", "Tambaram"],
+                "Chennai": ["Ambattur", "Aminjikarai", "Egmore", "Mylapore", "Velachery"],
+                "Coimbatore": ["Annur", "Coimbatore South", "Mettupalayam", "Pollachi"],
+                "Cuddalore": ["Chidambaram", "Panruti", "Virudhachalam"],
+                "Dharmapuri": ["Dharmapuri", "Harur", "Palacode"],
+                "Dindigul": ["Dindigul East", "Kodaikanal", "Palani"],
+                "Erode": ["Bhavani", "Gobichettipalayam", "Perundurai"],
+                "Kallakurichi": ["Kallakurichi", "Sankarapuram", "Ulundurpet"],
+                "Kancheepuram": ["Kancheepuram", "Sriperumbudur", "Walajabad"],
+                "Kanniyakumari": ["Agasteeswaram", "Kalkulam", "Vilavancode"],
+                "Karur": ["Aravakurichi", "Kulithalai", "Manmangalam"],
+                "Krishnagiri": ["Hosur", "Pochampalli", "Uthangarai"],
+                "Madurai": ["Madurai North", "Madurai South", "Melur", "Usilampatti"],
+                "Mayiladuthurai": ["Mayiladuthurai", "Sirkazhi", "Tharangambadi"],
+                "Nagapattinam": ["Nagapattinam", "Kilvelur", "Vedaranyam"],
+                "Namakkal": ["Namakkal", "Rasipuram", "Tiruchengode"],
+                "Nilgiris": ["Coonoor", "Gudalur", "Udhagamandalam"],
+                "Perambalur": ["Perambalur", "Alathur", "Kunnam"],
+                "Pudukkottai": ["Pudukkottai", "Alangudi", "Aranthangi"],
+                "Ramanathapuram": ["Ramanathapuram", "Paramakudi", "Rameswaram"],
+                "Ranipet": ["Arakkonam", "Arcot", "Walajapet"],
+                "Salem": ["Salem South", "Attur", "Mettur", "Omalur"],
+                "Sivaganga": ["Sivaganga", "Karaikudi", "Manamadurai"],
+                "Tenkasi": ["Tenkasi", "Sengottai", "Sankarankovil"],
+                "Thanjavur": ["Thanjavur", "Kumbakonam", "Pattukkottai"],
+                "Theni": ["Andipatti", "Bodinayakanur", "Periyakulam"],
+                "Thoothukudi": ["Kovilpatti", "Thoothukudi", "Vilathikulam"],
+                "Tiruchirappalli": ["Lalgudi", "Manapparai", "Srirangam", "Tiruchirappalli East"],
+                "Tirunelveli": ["Ambasamudram", "Nanguneri", "Tirunelveli"],
+                "Tiruppur": ["Avinashi", "Dharapuram", "Tiruppur South"],
+                "Tiruvallur": ["Avadi", "Ponneri", "Tiruvallur"],
+                "Tiruvannamalai": ["Arani", "Chengam", "Tiruvannamalai"],
+                "Tiruvarur": ["Tiruvarur", "Mannargudi", "Thiruthuraipoondi"],
+                "Vellore": ["Gudiyatham", "Katpadi", "Vellore"],
+                "Viluppuram": ["Viluppuram", "Tindivanam", "Gingee"],
+                "Virudhunagar": ["Aruppukottai", "Rajapalayam", "Sivakasi"],
+                "Tirupattur": ["Ambur", "Tirupattur", "Vaniyambadi"]
+            },
+            "KERALA": {
+                "Thiruvananthapuram": ["Thiruvananthapuram", "Neyyattinkara", "Nedumangad"],
+                "Kollam": ["Kollam", "Karunagappally", "Kottarakkara"],
+                "Pathanamthitta": ["Pathanamthitta", "Adoor", "Ranni"],
+                "Alappuzha": ["Cherthala", "Ambalappuzha", "Chengannur"],
+                "Kottayam": ["Kottayam", "Changanassery", "Vaikom"],
+                "Idukki": ["Devikulam", "Thodupuzha", "Peerumade"],
+                "Ernakulam": ["Aluva", "Kochi", "Kanayannur"],
+                "Thrissur": ["Thrissur", "Chavakkad", "Kodungallur"],
+                "Palakkad": ["Palakkad", "Alathur", "Chittur"],
+                "Malappuram": ["Eranad", "Nilambur", "Tirur"],
+                "Kozhikode": ["Kozhikode", "Vadakara", "Koyilandy"],
+                "Wayanad": ["Mananthavady", "Sulthan Bathery", "Vythiri"],
+                "Kannur": ["Taliparamba", "Thalassery", "Iritty"],
+                "Kasaragod": ["Kasaragod", "Hosdurg", "Vellarikundu"]
+            },
+            "KARNATAKA": {
+                "Bagalkot": ["Badami", "Bagalkot", "Jamkhandi"],
+                "Ballari": ["Ballari", "Hospet", "Sandur"],
+                "Belagavi": ["Athani", "Belagavi", "Chikkodi", "Gokak"],
+                "Bengaluru Rural": ["Devanahalli", "Doddaballapura", "Hoskote"],
+                "Bengaluru Urban": ["Anekal", "Bengaluru North", "Bengaluru South"],
+                "Bidar": ["Aurad", "Basavakalyan", "Bidar"],
+                "Chamarajanagar": ["Chamarajanagar", "Gundlupet", "Kollegal"],
+                "Chikkaballapur": ["Chikkaballapur", "Chintamani", "Gauribidanur"],
+                "Chikkamagaluru": ["Chikkamagaluru", "Kadur", "Mudigere"],
+                "Chitradurga": ["Challakere", "Chitradurga", "Hiriyur"],
+                "Dakshina Kannada": ["Bantwal", "Mangaluru", "Puttur"],
+                "Davanagere": ["Channagiri", "Davanagere", "Harihar"],
+                "Dharwad": ["Dharwad", "Hubballi", "Navalgund"],
+                "Gadag": ["Gadag", "Mundargi", "Ron"],
+                "Hassan": ["Arsikere", "Belur", "Hassan"],
+                "Haveri": ["Haveri", "Ranebennur", "Shiggaon"],
+                "Kalaburagi": ["Aland", "Kalaburagi", "Sedam"],
+                "Kodagu": ["Madikeri", "Somwarpet", "Virajpet"],
+                "Kolar": ["Bangarapet", "Kolar", "Mulbagal"],
+                "Koppal": ["Gangavathi", "Koppal", "Kushtagi"],
+                "Mandya": ["Maddur", "Mandya", "Srirangapatna"],
+                "Mysuru": ["Hunasuru", "Mysuru", "Nanjangud"],
+                "Raichur": ["Manvi", "Raichur", "Sindhanur"],
+                "Ramanagara": ["Channapatna", "Kanakapura", "Ramanagara"],
+                "Shivamogga": ["Bhadravati", "Sagara", "Shivamogga"],
+                "Tumakuru": ["Kunigal", "Sira", "Tumakuru"],
+                "Udupi": ["Karkala", "Kundapura", "Udupi"],
+                "Uttara Kannada": ["Honnavar", "Karwar", "Sirsi"],
+                "Vijayapura": ["Bijapur", "Indi", "Muddebihal"],
+                "Yadgir": ["Shahapur", "Shorapur", "Yadgir"],
+                "Vijayanagara": ["Hosapete", "Harapanahalli", "Kudligi"]
+            },
+            "ANDHRA PRADESH": {
+                "Srikakulam": ["Srikakulam", "Palasa", "Tekkali"],
+                "Vizianagaram": ["Vizianagaram", "Bobbili", "Gajapathinagaram"],
+                "Visakhapatnam": ["Visakhapatnam (Urban)", "Bheemunipatnam", "Anakapalle"],
+                "Anakapalli": ["Anakapalle", "Chodavaram", "Madugula"],
+                "Alluri Sitharama Raju": ["Paderu", "Araku Valley", "Rampachodavaram"],
+                "Kakinada": ["Kakinada Urban", "Kakinada Rural", "Peddapuram"],
+                "Dr. B. R. Ambedkar Konaseema": ["Amalapuram", "Razole", "Mummidivaram"],
+                "East Godavari": ["Rajamahendravaram Urban", "Kovvur", "Nidadavole"],
+                "West Godavari": ["Bhimavaram", "Tadepalligudem", "Narsapuram"],
+                "Eluru": ["Eluru", "Denduluru", "Kaikalur"],
+                "Krishna": ["Machilipatnam", "Gudivada", "Nuzvid"],
+                "NTR": ["Vijayawada Urban", "Mylavaram", "Jaggayyapeta"],
+                "Guntur": ["Guntur Urban", "Tenali", "Ponnur"],
+                "Bapatla": ["Bapatla", "Chirala", "Repalle"],
+                "Palnadu": ["Narasaraopet", "Chilakaluripet", "Macherla"],
+                "Prakasam": ["Ongole", "Markapur", "Kandukur"],
+                "Kurnool": ["Kurnool", "Adoni", "Yemmiganur"],
+                "Nandyal": ["Nandyal", "Allagadda", "Dhone"],
+                "Anantapur": ["Anantapur", "Gooty", "Tadipatri"],
+                "Sri Sathya Sai": ["Puttaparthi", "Dharmavaram", "Kadiri"],
+                "YSR Kadapa": ["Kadapa", "Proddatur", "Jammalamadugu"],
+                "Annamayya": ["Rayachoti", "Rajampet", "Madanapalle"],
+                "Tirupati": ["Tirupati Urban", "Srikalahasti", "Gudur"],
+                "SPSR Nellore": ["Nellore Urban", "Kavali", "Atmakur"],
+                "Chittoor": ["Chittoor", "Palamaner", "Punganur"],
+                "Parvathipuram Manyam": ["Parvathipuram", "Salur", "Kurupam"]
+            }
+        };
+
+        const jurisdictionTranslations = {
+            ta: {
+                "TAMIL NADU": "தமிழ்நாடு",
+                "KERALA": "கேரளா",
+                "ANDHRA PRADESH": "ஆந்திரப் பிரதேசம்",
+                "KARNATAKA": "கர்நாடகா",
+                // Districts
+                "Ariyalur": "அரியலூர்", "Chengalpattu": "செங்கல்பட்டு", "Chennai": "சென்னை",
+                "Coimbatore": "கோயம்புத்தூர்", "Cuddalore": "கடலூர்", "Dharmapuri": "தர்மபுரி",
+                "Dindigul": "திண்டுக்கல்", "Erode": "ஈரோடு", "Kallakurichi": "கள்ளக்குறிச்சி",
+                "Kancheepuram": "காஞ்சிபுரம்", "Kanniyakumari": "கன்னியாகுமரி", "Karur": "கரூர்",
+                "Krishnagiri": "கிருஷ்ணகிரி", "Madurai": "மதுரை", "Mayiladuthurai": "மயிலாடுதுறை",
+                "Nagapattinam": "நாகப்பட்டினம்", "Namakkal": "நாமக்கல்", "Nilgiris": "நீலகிரி",
+                "Perambalur": "பெரம்பலூர்", "Pudukkottai": "புதுக்கோட்டை", "Ramanathapuram": "இராமநாதபுரம்",
+                "Ranipet": "இராணிப்பேட்டை", "Salem": "சேலம்", "Sivaganga": "சிவகங்கை",
+                "Tenkasi": "தென்காசி", "Thanjavur": "தஞ்சாவூர்", "Theni": "தேனி",
+                "Thoothukudi": "தூத்துக்குடி", "Tiruchirappalli": "திருச்சிராப்பள்ளி", "Tirunelveli": "திருநெல்வேலி",
+                "Tiruppur": "திருப்பூர்", "Tiruvallur": "திருவள்ளூர்", "Tiruvannamalai": "திருவண்ணாமலை",
+                "Tiruvarur": "திருவாரூர்", "Vellore": "வேலூர்", "Viluppuram": "விழுப்புரம்",
+                "Virudhunagar": "விருதுநகர்", "Tirupattur": "திருப்பத்தூர்",
+                // Taluks
+                "Andimadam": "ஆண்டிமடம்", "Sendurai": "செந்துறை", "Cheyyur": "செய்யூர்",
+                "Madurantakam": "மதுராந்தகம்", "Tambaram": "தாம்பரம்", "Ambattur": "அம்பத்தூர்",
+                "Aminjikarai": "அமிஞ்சிகரை", "Egmore": "எழும்பூர்", "Mylapore": "மயிலாப்பூர்",
+                "Velachery": "வேளச்சேரி", "Annur": "அன்னூர்", "Coimbatore South": "கோயம்புத்தூர் தெற்கு",
+                "Mettupalayam": "மேட்டுப்பாளையம்", "Pollachi": "பொள்ளாச்சி", "Chidambaram": "சிதம்பரம்",
+                "Panruti": "பண்ருட்டி", "Virudhachalam": "விருத்தாசலம்", "Harur": "அரூர்",
+                "Palacode": "பாலக்கோடு", "Dindigul East": "திண்டுக்கல் கிழக்கு", "Kodaikanal": "கொடைக்கானல்",
+                "Palani": "பழனி", "Bhavani": "பவானி", "Gobichettipalayam": "கோபிச்செட்டிப்பாளையம்",
+                "Perundurai": "பெருந்துறை", "Sankarapuram": "சங்கராபுரம்", "Ulundurpet": "உளுந்தூர்ப்பேட்டை",
+                "Sriperumbudur": "திருப்பெரும்புதூர்", "Walajabad": "வாலாஜாபாத்", "Agasteeswaram": "அகத்தீஸ்வரம்",
+                "Kalkulam": "கல்குளம்", "Vilavancode": "விளவங்கோடு", "Aravakurichi": "அரவக்குறிச்சி",
+                "Kulithalai": "குளித்தலை", "Manmangalam": "மண்மங்கலம்", "Hosur": "ஓசூர்",
+                "Pochampalli": "போச்சம்பள்ளி", "Uthangarai": "உத்தங்கரை", "Madurai North": "மதுரை வடக்கு",
+                "Madurai South": "மதுரை தெற்கு", "Melur": "மேலூர்", "Usilampatti": "உசிலம்பட்டி",
+                "Sirkazhi": "சீர்காழி", "Tharangambadi": "தரங்கம்பாடி", "Kilvelur": "கீழ்வேலூர்",
+                "Vedaranyam": "வேதாரண்யம்", "Rasipuram": "இராசிபுரம்", "Tiruchengode": "திருச்செங்கோடு",
+                "Coonoor": "குன்னூர்", "Gudalur": "கூடலூர்", "Udhagamandalam": "உதகமண்டலம்",
+                "Alathur": "ஆலத்தூர்", "Kunnam": "குன்னம்", "Alangudi": "ஆலங்குடி",
+                "Aranthangi": "அறந்தாங்கி", "Paramakudi": "பரமக்குடி", "Rameswaram": "இராமேஸ்வரம்",
+                "Arakkonam": "அரக்கோணம்", "Arcot": "ஆற்காடு", "Walajapet": "வாலாஜாபேட்டை",
+                "Salem South": "சேலம் தெற்கு", "Attur": "ஆத்தூர்", "Mettur": "மேட்டூர்",
+                "Omalur": "ஓமலூர்", "Karaikudi": "காரைக்குடி", "Manamadurai": "மானாமதுரை",
+                "Sengottai": "செங்கோட்டை", "Sankarankovil": "சங்கரன்கோவில்", "Kumbakonam": "கும்பகோணம்",
+                "Pattukkottai": "பட்டுக்கோட்டை", "Andipatti": "ஆண்டிபட்டி", "Bodinayakanur": "போடிநாயக்கனூர்",
+                "Periyakulam": "பெரியகுளம்", "Kovilpatti": "கோவில்பட்டி", "Vilathikulam": "விளாத்திகுளம்",
+                "Lalgudi": "இலால்குடி", "Manapparai": "மணப்பாறை", "Srirangam": "ஸ்ரீரங்கம்",
+                "Tiruchirappalli East": "திருச்சிராப்பள்ளி கிழக்கு", "Ambasamudram": "அம்பாசமுத்திரம்", "Nanguneri": "நாங்குநேரி",
+                "Avinashi": "அவினாசி", "Dharapuram": "தாராபுரம்", "Tiruppur South": "திருப்பூர் தெற்கு",
+                "Avadi": "ஆவடி", "Ponneri": "பொன்னேரி", "Arani": "ஆரணி",
+                "Chengam": "செங்கம்", "Mannargudi": "மன்னார்குடி", "Thiruthuraipoondi": "திருத்துறைப்பூண்டி",
+                "Gudiyatham": "குடியாத்தம்", "Katpadi": "காட்பாடி", "Tindivanam": "திண்டிவனம்",
+                "Gingee": "செஞ்சி", "Aruppukottai": "அருப்புக்கோட்டை", "Rajapalayam": "இராஜபாளையம்",
+                "Sivakasi": "சிவகாசி", "Ambur": "ஆம்பூர்", "Vaniyambadi": "வாணியம்பாடி"
+            }
+        };
+
+        const stateSelect = document.getElementById('state-select');
+        const districtSelect = document.getElementById('district-select');
+        const talukSelect = document.getElementById('taluk-select');
+        const stateGroup = document.getElementById('state-group');
+        const districtGroup = document.getElementById('district-group');
+        const talukGroup = document.getElementById('taluk-group');
+        const proceedBtn = document.getElementById('proceed-btn');
+        const statFill = document.getElementById('stat-fill');
+
+        const langGroup = document.getElementById('lang-group');
+        const scopeGroup = document.getElementById('scope-group');
+
+        let currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function getTranslation(key) {
+            if (currentLang === 'ta' && jurisdictionTranslations.ta[key]) {
+                return jurisdictionTranslations.ta[key];
+            }
+            return key;
+        }
+
+        function handleLanguageSelect(lang) {
+            currentLang = lang;
+            localStorage.setItem('appLanguage', lang);
+            updateUI();
+
+            // Re-render state select
+            const savedState = stateSelect.value;
+            const savedDistrict = districtSelect.value;
+            const savedTaluk = talukSelect.value;
+
+            renderStateOptions();
+            if (savedState) {
+                stateSelect.value = savedState;
+                renderDistrictOptions();
+                if (savedDistrict) {
+                    districtSelect.value = savedDistrict;
+                    renderTalukOptions();
+                    if (savedTaluk) {
+                        talukSelect.value = savedTaluk;
+                    }
+                }
+            }
+
+            // Show next step
+            langGroup.style.display = 'none';
+            scopeGroup.classList.add('visible-group');
+            statFill.style.width = '20%';
+        }
+
+        function renderStateOptions() {
+            const t = translations[currentLang];
+            stateSelect.innerHTML = `<option value="" disabled selected id="t-choose-state">${t.chooseState}</option>`;
+            Object.keys(electionData).sort().forEach(state => {
+                const opt = document.createElement('option');
+                opt.value = state;
+                opt.textContent = getTranslation(state);
+                stateSelect.appendChild(opt);
+            });
+        }
+
+        function renderDistrictOptions() {
+            const t = translations[currentLang];
+            const state = stateSelect.value;
+            districtSelect.innerHTML = `<option value="" disabled selected id="t-choose-district">${t.chooseDistrict}</option>`;
+            if (state && electionData[state]) {
+                Object.keys(electionData[state]).sort().forEach(district => {
+                    const opt = document.createElement('option');
+                    opt.value = district;
+                    opt.textContent = getTranslation(district);
+                    districtSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function renderTalukOptions() {
+            const t = translations[currentLang];
+            const state = stateSelect.value;
+            const district = districtSelect.value;
+            talukSelect.innerHTML = `<option value="" disabled selected id="t-choose-taluk">${t.chooseTaluk}</option>`;
+            if (state && district && electionData[state] && electionData[state][district]) {
+                [...electionData[state][district]].sort().forEach(taluk => {
+                    const opt = document.createElement('option');
+                    opt.value = taluk;
+                    opt.textContent = getTranslation(taluk);
+                    talukSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function handleScopeChange() {
+            stateGroup.classList.add('visible-group');
+            statFill.style.width = '40%';
+
+            // Reset downstream
+            stateSelect.selectedIndex = 0;
+            districtGroup.classList.remove('visible-group');
+            talukGroup.classList.remove('visible-group');
+            proceedBtn.style.display = 'none';
+        }
+
+        function handleStateChange() {
+            renderDistrictOptions();
+            districtGroup.classList.remove('visible-group');
+            talukGroup.classList.remove('visible-group');
+            proceedBtn.style.display = 'none';
+            statFill.style.width = '40%';
+
+            if (stateSelect.value) {
+                districtGroup.classList.add('visible-group');
+                statFill.style.width = '60%';
+            }
+        }
+
+        function handleDistrictChange() {
+            renderTalukOptions();
+            talukGroup.classList.remove('visible-group');
+            proceedBtn.style.display = 'none';
+            statFill.style.width = '60%';
+
+            if (districtSelect.value) {
+                talukGroup.classList.add('visible-group');
+                statFill.style.width = '80%';
+            }
+        }
+
+        function handleTalukChange() {
+            if (talukSelect.value) {
+                statFill.style.width = '100%';
+                proceedBtn.style.display = 'flex';
+
+                const checkedScope = document.querySelector('input[name="scope"]:checked');
+                const scopeValue = checkedScope ? checkedScope.value : 'State';
+
+                localStorage.setItem('selectedScope', scopeValue);
+                localStorage.setItem('selectedState', stateSelect.value);
+                localStorage.setItem('selectedDistrict', districtSelect.value);
+                localStorage.setItem('selectedTaluk', talukSelect.value);
+            }
+        }
+
+        function proceedToLogin() {
+            window.location.href = 'login.html';
+        }
+
+        const translations = {
+            en: {
+                title: "National E-Voting Portal",
+                subtitle: "Select your jurisdiction to begin the voting process",
+                scopeLabel: "Election Scope",
+                central: "Central",
+                state: "State",
+                selectState: "Select State",
+                chooseState: "-- Choose State --",
+                selectDistrict: "Select District",
+                chooseDistrict: "-- Choose District --",
+                selectTaluk: "Select Taluk",
+                chooseTaluk: "-- Choose Taluk --",
+                langLabel: "Choose Language / மொழியைத் தேர்ந்தெடுக்கவும்",
+                proceed: "Proceed to Login"
+            },
+            ta: {
+                title: "தேசிய மின்னணு வாக்குப்பதிவு போர்டல்",
+                subtitle: "உங்கள் அதிகார வரம்பைத் தேர்ந்தெடுக்கவும்",
+                scopeLabel: "தேர்தல் வரம்பு",
+                central: "மத்திய",
+                state: "மாநில",
+                selectState: "மாநிலத்தைத் தேர்ந்தெடுக்கவும்",
+                chooseState: "-- மாநிலத்தைத் தேர்ந்தெடுக்கவும் --",
+                selectDistrict: "மாவட்டத்தைத் தேர்ந்தெடுக்கவும்",
+                chooseDistrict: "-- மாவட்டத்தைத் தேர்ந்தெடுக்கவும் --",
+                selectTaluk: "வட்டம்/தாலுகா தேர்ந்தெடுக்கவும்",
+                chooseTaluk: "-- தாலுகாவைத் தேர்ந்தெடுக்கவும் --",
+                langLabel: "மொழியைத் தேர்ந்தெடுக்கவும் / Choose Language",
+                proceed: "உள்நுழைய தொடரவும்"
+            }
+        };
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-title').textContent = t.title;
+            document.getElementById('t-subtitle').textContent = t.subtitle;
+            document.getElementById('t-lang-label').textContent = t.langLabel;
+            document.getElementById('t-scope-label').textContent = t.scopeLabel;
+            document.getElementById('t-central').textContent = t.central;
+            document.getElementById('t-state').textContent = t.state;
+            document.getElementById('t-select-state').textContent = t.selectState;
+            document.getElementById('t-choose-state').textContent = t.chooseState;
+            document.getElementById('t-select-district').textContent = t.selectDistrict;
+            document.getElementById('t-choose-district').textContent = t.chooseDistrict;
+            document.getElementById('t-select-taluk').textContent = t.selectTaluk;
+            document.getElementById('t-choose-taluk').textContent = t.chooseTaluk;
+            document.getElementById('t-proceed').textContent = t.proceed;
+        }
+
+        // Initialize state dropdown
+        renderStateOptions();
+    </script>
+</body>
+
+</html>

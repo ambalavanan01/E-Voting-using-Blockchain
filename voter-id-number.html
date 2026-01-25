@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Election Voter Id</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="notifications.js"></script>
+
+    <script>
+        const translations = {
+            en: {
+                title: "Voter ID Verification",
+                subtitle: "Please enter your 10-digit alphanumeric Voter ID number found on your ID card.",
+                label: "Voter ID Number",
+                btn: "Verify Voter ID",
+                error: "Please enter a valid 10-digit alphanumeric Voter ID",
+                success: "Voter ID verified"
+            },
+            ta: {
+                title: "வாக்காளர் அடையாள அட்டை சரிபார்ப்பு",
+                subtitle: "உங்கள் அடையாள அட்டையில் உள்ள 10 இலக்க எண்களை உள்ளிடவும்.",
+                label: "வாக்காளர் அடையாள எண்",
+                btn: "வாக்காளர் அடையாளத்தை சரிபார்க்கவும்",
+                error: "சரியான 10 இலக்க வாக்காளர் அடையாள எண்ணை உள்ளிடவும்",
+                success: "வாக்காளர் அடையாளம் சரிபார்க்கப்பட்டது"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-title').textContent = t.title;
+            document.getElementById('t-subtitle').textContent = t.subtitle;
+            document.getElementById('t-label').textContent = t.label;
+            document.getElementById('t-btn').textContent = t.btn;
+        }
+
+        function continueNext() {
+            const t = translations[currentLang];
+            const voterId = document.getElementById("voter-id").value.trim().toUpperCase();
+
+            // Check if it's 10-digit alphanumeric
+            if (!/^[A-Z0-9]{10}$/.test(voterId)) {
+                showNotification(t.error, "error");
+                return;
+            }
+
+            localStorage.setItem("currentVoterID", voterId);
+            showNotification(t.success, "success");
+            setTimeout(() => {
+                window.location.href = "voter-id-image.html";
+            }, 1200);
+        }
+
+        window.addEventListener('DOMContentLoaded', updateUI);
+    </script>
+</head>
+
+<body>
+
+    <div class="card">
+        <h3 id="t-title">Voter ID Verification</h3>
+        <p id="t-subtitle">Please enter your 10-digit alphanumeric Voter ID number found on your ID card.</p>
+
+        <div class="input-group">
+            <label id="t-label" for="voter-id">Voter ID Number</label>
+            <input id="voter-id" placeholder="ABC1234567" maxlength="10" style="text-transform: uppercase;">
+        </div>
+
+        <button id="t-btn" class="btn-primary" onclick="continueNext()">Verify Voter ID</button>
+    </div>
+
+</body>
+
+</html>

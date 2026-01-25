@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voter Id Verification</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="notifications.js"></script>
+
+    <style>
+        /* Voter ID Card Styling */
+        .voter-card-container {
+            width: 100%;
+            max-width: 650px;
+            background: linear-gradient(135deg, #fdf2e9, #f5f5f5);
+            margin: 20px auto;
+            border: 1px solid #999;
+            border-radius: 10px;
+            padding: 16px;
+            position: relative;
+            box-sizing: border-box;
+            text-align: left;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            font-size: clamp(30px, 8vw, 60px);
+            font-weight: bold;
+            color: rgba(255, 0, 0, 0.08);
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        .voter-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 8px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .emblem-img {
+            width: 45px;
+            height: auto;
+        }
+
+        .header-text {
+            flex: 1;
+            text-align: center;
+        }
+
+        .hi-text {
+            font-weight: bold;
+            font-size: 15px;
+            color: #000;
+        }
+
+        .en-text {
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .eci-logo-img {
+            width: 50px;
+            height: auto;
+        }
+
+        .voter-content {
+            display: flex;
+            gap: 16px;
+            margin-top: 15px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .voter-photo {
+            width: 100px;
+            height: 130px;
+            border: 1px solid #000;
+            background: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .voter-details {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #222;
+        }
+
+        .voter-details span {
+            font-weight: bold;
+        }
+
+        .small-voter-photo {
+            width: 55px;
+            height: 75px;
+            border: 1px solid #000;
+            background: #ddd;
+            align-self: flex-start;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .epic-no-display {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+            border-top: 1px dashed #999;
+            padding-top: 8px;
+        }
+
+        .voter-footer {
+            margin-top: 12px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+            position: relative;
+            z-index: 2;
+        }
+
+        @media (max-width: 550px) {
+            .voter-card-container {
+                padding: 12px;
+            }
+
+            .voter-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 12px;
+            }
+
+            .small-voter-photo {
+                display: none;
+            }
+
+            .voter-header {
+                gap: 8px;
+            }
+
+            .emblem-img,
+            .eci-logo-img {
+                width: 35px;
+            }
+
+            .hi-text {
+                font-size: 13px;
+            }
+
+            .en-text {
+                font-size: 12px;
+            }
+
+            .epic-no-display {
+                font-size: 16px;
+                text-align: center;
+            }
+        }
+    </style>
+
+    <script>
+        const translations = {
+            en: {
+                title: "Voter ID Verification",
+                subtitle: "Review the digital copy of your Voter ID Card and start biometric matching.",
+                scanBtn: "Start Biometric Scan",
+                backBtn: "Back",
+                name: "Name:",
+                father: "Father's Name:",
+                gender: "Gender:",
+                dob: "DOB / Age:",
+                male: "Male",
+                epic: "EPIC No:",
+                successScan: "Initializing biometric scanner...",
+                watermark: "SAMPLE • DEMO",
+                footer: "e-Electors Photo Identity Card"
+            },
+            ta: {
+                title: "வாக்காளர் அடையாளச் சரிபார்ப்பு",
+                subtitle: "உங்கள் வாக்காளர் அடையாள அட்டையின் டிஜிட்டல் நகலைச் சரிபார்த்து, பயோமெட்ரிக் பொருத்தத்தைத் தொடங்கவும்.",
+                scanBtn: "பயோமெட்ரிக் ஸ்கேன் தொடங்கவும்",
+                backBtn: "முந்தைய பக்கம்",
+                name: "பெயர்:",
+                father: "தந்தை பெயர்:",
+                gender: "பாலினம்:",
+                dob: "பிறந்த தேதி / வயது:",
+                male: "ஆண்",
+                epic: "EPIC எண்:",
+                successScan: "பயோமெட்ரிக் ஸ்கேனர் தொடங்குகிறது...",
+                watermark: "மாதிரி • டெமோ",
+                footer: "மின்-வாக்காளர் புகைப்பட அடையாள அட்டை"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-title').textContent = t.title;
+            document.getElementById('t-subtitle').textContent = t.subtitle;
+            document.getElementById('t-scan-btn').textContent = t.scanBtn;
+            document.getElementById('t-back-btn').textContent = t.backBtn;
+            document.getElementById('t-label-name').textContent = t.name;
+            document.getElementById('t-label-father').textContent = t.father;
+            document.getElementById('t-label-gender').textContent = t.gender;
+            document.getElementById('t-label-dob').textContent = t.dob;
+            document.getElementById('t-val-gender').textContent = t.male;
+            document.getElementById('t-watermark').textContent = t.watermark;
+            document.getElementById('t-footer').textContent = t.footer;
+
+            const voterId = localStorage.getItem("currentVoterID") || "XXXXXXXXXX";
+            document.getElementById("voterIdDisplay").innerText = (t.epic) + " " + voterId.toUpperCase();
+        }
+
+        window.onload = updateUI;
+
+        function startBiometricScan() {
+            const t = translations[currentLang];
+            showNotification(t.successScan, "info");
+            setTimeout(() => {
+                window.location.href = "biometric.html";
+            }, 800);
+        }
+    </script>
+</head>
+
+<body>
+
+    <div class="card" style="max-width: 750px; padding: 24px;">
+        <h3 id="t-title">Voter ID Verification</h3>
+        <p id="t-subtitle">Review the digital copy of your Voter ID Card and start biometric matching.</p>
+
+        <div class="voter-card-container">
+            <div id="t-watermark" class="watermark">SAMPLE • DEMO</div>
+
+            <div class="voter-header">
+                <img src="indianemblem.png" alt="Emblem" class="emblem-img">
+
+                <div class="header-text">
+                    <div class="hi-text">भारत निर्वाचन आयोग</div>
+                    <div class="en-text">ELECTION COMMISSION OF INDIA</div>
+                </div>
+
+                <img src="eci_logo.png" alt="ECI" class="eci-logo-img">
+            </div>
+
+            <div class="voter-content">
+                <div class="voter-photo">
+                    <img src="eci_logo.png" alt="User" style="width: 60%; opacity: 0.2;">
+                </div>
+
+                <div class="voter-details">
+                    <div><span id="t-label-name">Name:</span> XXXXXXXX</div>
+                    <div><span id="t-label-father">Father's Name:</span> XXXXXXXX</div>
+                    <div><span id="t-label-gender">Gender:</span> <span id="t-val-gender">Male</span></div>
+                    <div><span id="t-label-dob">DOB / Age:</span> 18+</div>
+
+                    <div id="voterIdDisplay" class="epic-no-display">
+                        EPIC No: XXXXXXXXXX
+                    </div>
+                </div>
+
+                <div class="small-voter-photo">
+                    <img src="eci_logo.png" alt="User" style="width: 50%; opacity: 0.1;">
+                </div>
+            </div>
+
+            <div id="t-footer" class="voter-footer">
+                e-Electors Photo Identity Card – ई-मतदाता पहचान पत्र
+            </div>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button id="t-scan-btn" class="btn-primary" onclick="startBiometricScan()">Start Biometric Scan</button>
+            <button id="t-back-btn" class="btn-ghost" style="margin-top: 12px;"
+                onclick="window.history.back()">Back</button>
+        </div>
+    </div>
+
+</body>
+
+</html>

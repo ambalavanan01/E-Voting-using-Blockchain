@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aadhaar Card Verification</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="notifications.js"></script>
+
+    <style>
+        /* Interactive Aadhaar Card Styles */
+        .aadhaar-card-container {
+            width: 100%;
+            max-width: 600px;
+            background: #fff;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            position: relative;
+            padding: 14px 18px;
+            box-sizing: border-box;
+            text-align: left;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            font-size: clamp(30px, 8vw, 50px);
+            color: rgba(255, 0, 0, 0.08);
+            font-weight: bold;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        .aadhaar-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            z-index: 2;
+            border-bottom: 2px solid #006400;
+            padding-bottom: 8px;
+        }
+
+        .emblem-img {
+            width: 45px;
+            height: auto;
+        }
+
+        .aadhaar-title-area {
+            flex: 1;
+            text-align: center;
+        }
+
+        .bharat-txt {
+            font-weight: bold;
+            font-size: 16px;
+            color: #000;
+        }
+
+        .gov-txt {
+            font-weight: bold;
+            font-size: 14px;
+            color: #006400;
+        }
+
+        .aadhaar-content {
+            display: flex;
+            margin-top: 16px;
+            gap: 16px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .user-photo {
+            width: 100px;
+            height: 125px;
+            border: 1px solid #000;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .aadhaar-details {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        .aadhaar-details span {
+            font-weight: bold;
+        }
+
+        .qr-img {
+            width: 90px;
+            height: 90px;
+            border: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .aadhaar-number-display {
+            text-align: center;
+            font-size: clamp(18px, 5vw, 24px);
+            letter-spacing: 2px;
+            font-weight: bold;
+            margin-top: 15px;
+            position: relative;
+            z-index: 2;
+            padding: 5px 0;
+            border-top: 1px solid #eee;
+        }
+
+        .footer-line {
+            height: 3px;
+            background: #c40000;
+            margin-top: 5px;
+        }
+
+        .aadhaar-footer-txt {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #c40000;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 520px) {
+            .aadhaar-card-container {
+                padding: 10px;
+            }
+
+            .aadhaar-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 12px;
+            }
+
+            .aadhaar-details {
+                font-size: 13px;
+            }
+
+            .qr-img {
+                width: 80px;
+                height: 80px;
+                margin-top: 5px;
+            }
+
+            .emblem-img {
+                width: 35px;
+            }
+
+            .bharat-txt {
+                font-size: 14px;
+            }
+
+            .gov-txt {
+                font-size: 12px;
+            }
+        }
+    </style>
+
+    <script>
+        const translations = {
+            en: {
+                title: "Aadhaar Card Verification",
+                subtitle: "Your Aadhaar details are generated below for final confirmation.",
+                confirmBtn: "Confirm & Proceed",
+                editBtn: "Edit Details",
+                name: "Name:",
+                dob: "DOB:",
+                gender: "Gender:",
+                male: "Male",
+                success: "Aadhaar Identity Confirmed",
+                watermark: "Government of India",
+                footer: "Aadhaar – Common Man's Right"
+            },
+            ta: {
+                title: "ஆதார் அட்டை சரிபார்ப்பு",
+                subtitle: "இறுதி உறுதிப்படுத்தலுக்காக உங்கள் ஆதார் விவரங்கள் கீழே உருவாக்கப்பட்டுள்ளன.",
+                confirmBtn: "உறுதிப்படுத்தி தொடரவும்",
+                editBtn: "விவரங்களைத் திருத்தவும்",
+                name: "பெயர்:",
+                dob: "பிறந்த தேதி:",
+                gender: "பாலினம்:",
+                male: "ஆண்",
+                success: "ஆதார் அடையாளம் உறுதிப்படுத்தப்பட்டது",
+                watermark: "இந்திய அரசு",
+                footer: "ஆதார் – ஏழை எளியோரின் உரிமை"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-title').textContent = t.title;
+            document.getElementById('t-subtitle').textContent = t.subtitle;
+            document.getElementById('t-btn-confirm').textContent = t.confirmBtn;
+            document.getElementById('t-btn-edit').textContent = t.editBtn;
+            document.getElementById('t-label-name').textContent = t.name;
+            document.getElementById('t-label-dob').textContent = t.dob;
+            document.getElementById('t-label-gender').textContent = t.gender;
+            document.getElementById('t-val-gender').textContent = t.male;
+            document.getElementById('t-watermark').textContent = t.watermark;
+            document.getElementById('t-footer-txt').textContent = t.footer;
+        }
+
+        function continueNext() {
+            const t = translations[currentLang];
+            showNotification(t.success, "success");
+            setTimeout(() => {
+                window.location.href = "voter-id-number.html";
+            }, 1200);
+        }
+
+        window.onload = function () {
+            updateUI();
+            const raw = localStorage.getItem("currentAadhaarNumber") || "000000000000";
+            // Format: XXXX XXXX XXXX
+            const formatted = raw.replace(/\D/g, '').match(/.{1,4}/g).join(" ");
+            document.getElementById("display-aadhaar").innerText = formatted;
+        }
+    </script>
+</head>
+
+<body>
+
+    <div class="card" style="max-width: 700px; padding: 20px;">
+        <h3 id="t-title">Aadhaar Card Verification</h3>
+        <p id="t-subtitle">Your Aadhaar details are generated below for final confirmation.</p>
+
+        <div class="aadhaar-card-container">
+            <div id="t-watermark" class="watermark">Government of India</div>
+
+            <div class="aadhaar-header">
+                <img src="indianemblem.png" alt="Emblem" class="emblem-img">
+                <div class="aadhaar-title-area">
+                    <div class="bharat-txt">भारत सरकार</div>
+                    <div class="gov-txt">GOVERNMENT OF INDIA</div>
+                </div>
+                <img src="eci_logo.png" alt="Logo" style="width: 40px; opacity: 0.5;">
+            </div>
+
+            <div class="aadhaar-content">
+                <div class="user-photo">
+                    <img src="eci_logo.png" alt="User" style="width:60%; opacity: 0.2;">
+                </div>
+
+                <div class="aadhaar-details">
+                    <div><span id="t-label-name">Name text</span> AABBCCDD</div>
+                    <div><span id="t-label-dob">DOB text</span> 01/01/1980</div>
+                    <div><span id="t-label-gender">Gender text</span> <span id="t-val-gender">Male text</span></div>
+                    <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">VID: 9192 8374 6501 2345
+                    </div>
+                </div>
+
+                <img src="image.png" alt="QR Code" class="qr-img">
+            </div>
+
+            <div id="display-aadhaar" class="aadhaar-number-display">
+                0000 0000 0000
+            </div>
+
+            <div class="footer-line"></div>
+
+            <div id="t-footer-txt" class="aadhaar-footer-txt">
+                आधार – आदमी का अधिकार
+            </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+            <button id="t-btn-confirm" class="btn-primary" onclick="continueNext()">Confirm & Proceed</button>
+            <button id="t-btn-edit" class="btn-ghost" style="margin-top: 10px;" onclick="window.history.back()">Edit
+                Details</button>
+        </div>
+    </div>
+
+</body>
+
+</html>

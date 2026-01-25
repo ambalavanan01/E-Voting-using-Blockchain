@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Login</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="notifications.js"></script>
+
+    <script>
+        const translations = {
+            en: {
+                loginTitle: "Citizen Login",
+                loginSubtitle: "Please enter your credentials to receive an OTP.",
+                username: "Username",
+                usernamePlaceholder: "Enter your name",
+                phone: "Mobile Number",
+                phonePlaceholder: "10-digit number",
+                sendBtn: "Send OTP",
+                nameWarning: "Please enter your username",
+                phoneError: "Enter a valid 10-digit mobile number",
+                loadingJ: "Loading jurisdiction...",
+                election: "Election"
+            },
+            ta: {
+                loginTitle: "குடிமகன் உள்நுழைவு",
+                loginSubtitle: "OTP பெற உங்கள் விவரங்களை உள்ளிடவும்.",
+                username: "பயனர் பெயர்",
+                usernamePlaceholder: "உங்கள் பெயரை உள்ளிடவும்",
+                phone: "கைபேசி எண்",
+                phonePlaceholder: "10 இலக்க எண்",
+                sendBtn: "OTP அனுப்பவும்",
+                nameWarning: "உங்கள் பயனர் பெயரை உள்ளிடவும்",
+                phoneError: "சரியான 10 இலக்க கைபேசி எண்ணை உள்ளிடவும்",
+                loadingJ: "அதிகார வரம்பை ஏற்றுகிறது...",
+                election: "தேர்தல்"
+            }
+        };
+
+        let currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-login-title').textContent = t.loginTitle;
+            document.getElementById('t-login-subtitle').textContent = t.loginSubtitle;
+            document.getElementById('t-label-username').textContent = t.username;
+            document.getElementById('username').placeholder = t.usernamePlaceholder;
+            document.getElementById('t-label-phone').textContent = t.phone;
+            document.getElementById('phone').placeholder = t.phonePlaceholder;
+            document.getElementById('t-btn-send').textContent = t.sendBtn;
+
+            // Jurisdiction Badge
+            const scope = localStorage.getItem('selectedScope') || (currentLang === 'ta' ? 'மாநில' : 'State');
+            const state = localStorage.getItem('selectedState') || 'N/A';
+            const district = localStorage.getItem('selectedDistrict') || 'N/A';
+            const taluk = localStorage.getItem('selectedTaluk') || 'N/A';
+
+            let displayScope = scope;
+            if (currentLang === 'ta') {
+                if (scope === 'Central') displayScope = 'மத்திய';
+                if (scope === 'State') displayScope = 'மாநில';
+            }
+
+            document.getElementById('jurisdiction-badge').textContent = `${displayScope} ${t.election} | ${state} | ${district} | ${taluk}`;
+        }
+
+        function sendOTP() {
+            const t = translations[currentLang];
+            const username = document.getElementById("username").value;
+            const phone = document.getElementById("phone").value;
+
+            if (username === "") {
+                showNotification(t.nameWarning, "warning");
+                return;
+            }
+
+            if (!/^\d{10}$/.test(phone)) {
+                showNotification(t.phoneError, "error");
+                return;
+            }
+
+            // Generate random 6-digit OTP
+            const randomOTP = Math.floor(100000 + Math.random() * 900000).toString();
+            localStorage.setItem("currentOTP", randomOTP);
+            localStorage.setItem("showOTP", "true");
+            localStorage.setItem("userName", username);
+            localStorage.setItem("userPhone", phone);
+
+            window.location.href = "otp.html";
+        }
+
+        window.addEventListener('DOMContentLoaded', updateUI);
+    </script>
+</head>
+
+<body>
+
+    <div class="card">
+        <img src="eci_logo.png" alt="ECI Logo" style="width: 80px; margin-bottom: 16px;">
+        <div id="jurisdiction-badge"
+            style="margin-bottom: 24px; padding: 6px 12px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+            Loading jurisdiction...
+        </div>
+
+        <h2 id="t-login-title">Citizen Login</h2>
+        <p id="t-login-subtitle">Please enter your credentials to receive an OTP.</p>
+
+        <div class="input-group">
+            <label id="t-label-username" for="username">Username</label>
+            <input id="username" type="text" placeholder="Enter your name">
+        </div>
+
+        <div class="input-group">
+            <label id="t-label-phone" for="phone">Mobile Number</label>
+            <input id="phone" type="tel" placeholder="10-digit number" maxlength="10">
+        </div>
+
+        <button id="t-btn-send" class="btn-primary" onclick="sendOTP()">Send OTP</button>
+    </div>
+
+</body>
+
+</html>

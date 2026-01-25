@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="notifications.js"></script>
+
+    <style>
+        .otp-inputs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .otp-inputs input {
+            width: 45px;
+            height: 55px;
+            font-size: 20px;
+            text-align: center;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .otp-inputs input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .timer-container {
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        #timer {
+            color: var(--danger);
+        }
+
+        .resend-link {
+            margin-top: 16px;
+            font-size: 0.875rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            display: none;
+        }
+    </style>
+
+    <script>
+        const translations = {
+            en: {
+                otpTitle: "OTP Verification",
+                otpSubtitle: "Enter the 6-digit code sent to your mobile device.",
+                expires: "Expires in:",
+                verifyBtn: "Verify & Proceed",
+                resend: "Resend Code",
+                successSent: "OTP sent successfully:",
+                expiredMsg: "OTP expired. Please request a new one.",
+                invalidMsg: "Invalid OTP. Please try again.",
+                storedError: "OTP expired or not sent",
+                verifiedSuccess: "OTP Verified Successfully",
+                newSent: "New OTP sent:"
+            },
+            ta: {
+                otpTitle: "OTP சரிபார்ப்பு",
+                otpSubtitle: "உங்கள் கைபேசிக்கு அனுப்பப்பட்ட 6 இலக்க குறியீட்டை உள்ளிடவும்.",
+                expires: "காலாவதி நேரம்:",
+                verifyBtn: "சரிபார்த்து தொடரவும்",
+                resend: "குறியீட்டை மீண்டும் அனுப்பவும்",
+                successSent: "OTP வெற்றிகரமாக அனுப்பப்பட்டது:",
+                expiredMsg: "OTP காலாவதியாகிவிட்டது. புதிய ஒன்றை கோரவும்.",
+                invalidMsg: "தவறான OTP. மீண்டும் முயற்சிக்கவும்.",
+                storedError: "OTP காலாவதியானது அல்லது அனுப்பப்படவில்லை",
+                verifiedSuccess: "OTP வெற்றிகரமாக சரிபார்க்கப்பட்டது",
+                newSent: "புதிய OTP அனுப்பப்பட்டது:"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-otp-title').textContent = t.otpTitle;
+            document.getElementById('t-otp-subtitle').textContent = t.otpSubtitle;
+            document.getElementById('t-expires').textContent = t.expires;
+            document.getElementById('t-verify-btn').textContent = t.verifyBtn;
+            document.getElementById('t-resend').textContent = t.resend;
+        }
+
+        let timeLeft = 60;
+        let timerId;
+
+        window.onload = function () {
+            updateUI();
+            startTimer();
+            if (localStorage.getItem("showOTP") === "true") {
+                const otp = localStorage.getItem("currentOTP");
+                const t = translations[currentLang];
+                showNotification(`${t.successSent} ${otp}`, "success", 60000);
+                localStorage.removeItem("showOTP");
+            }
+        };
+
+        function startTimer() {
+            timeLeft = 60;
+            document.getElementById("timer").textContent = "01:00";
+            document.getElementById("verify-btn").disabled = false;
+            document.getElementById("resend-container").style.display = "none";
+
+            clearInterval(timerId);
+            timerId = setInterval(() => {
+                timeLeft--;
+                let minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
+                document.getElementById("timer").textContent =
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    document.getElementById("verify-btn").disabled = true;
+                    document.getElementById("resend-container").style.display = "block";
+                    localStorage.removeItem("currentOTP");
+                    showNotification(translations[currentLang].expiredMsg, "warning");
+                }
+            }, 1000);
+        }
+
+        function verifyOTP() {
+            const t = translations[currentLang];
+            const inputs = ["o1", "o2", "o3", "o4", "o5", "o6"];
+            const otp = inputs.map(id => document.getElementById(id).value).join("");
+
+            const storedOTP = localStorage.getItem("currentOTP");
+
+            if (!storedOTP) {
+                showNotification(t.storedError, "error");
+                return;
+            }
+
+            if (otp === storedOTP) {
+                clearInterval(timerId);
+                showNotification(t.verifiedSuccess, "success");
+                setTimeout(() => {
+                    window.location.href = "aadhaar.html";
+                }, 1500);
+            } else {
+                showNotification(t.invalidMsg, "error");
+            }
+        }
+
+        function focusNext(current, nextId) {
+            if (current.value.length === 1 && nextId) {
+                document.getElementById(nextId).focus();
+            }
+        }
+
+        function resendOTP() {
+            const t = translations[currentLang];
+            const randomOTP = Math.floor(100000 + Math.random() * 900000).toString();
+            localStorage.setItem("currentOTP", randomOTP);
+            showNotification(`${t.newSent} ${randomOTP}`, "success", 60000);
+            startTimer();
+            // Clear inputs
+            ["o1", "o2", "o3", "o4", "o5", "o6"].forEach(id => document.getElementById(id).value = "");
+            document.getElementById("o1").focus();
+        }
+    </script>
+
+</head>
+
+<body>
+
+    <div class="card">
+        <button class="btn-ghost" style="width: auto; position: absolute; top: 16px; left: 16px; padding: 8px;"
+            onclick="history.back()">←</button>
+
+        <div style="margin-top: 20px;">
+            <h3 id="t-otp-title">OTP Verification</h3>
+            <p id="t-otp-subtitle">Enter the 6-digit code sent to your mobile device.</p>
+
+            <div class="timer-container">
+                <span id="t-expires">Expires in:</span> <span id="timer">01:00</span>
+            </div>
+
+            <div class="otp-inputs">
+                <input id="o1" maxlength="1" oninput="focusNext(this, 'o2')" autofocus>
+                <input id="o2" maxlength="1" oninput="focusNext(this, 'o3')">
+                <input id="o3" maxlength="1" oninput="focusNext(this, 'o4')">
+                <input id="o4" maxlength="1" oninput="focusNext(this, 'o5')">
+                <input id="o5" maxlength="1" oninput="focusNext(this, 'o6')">
+                <input id="o6" maxlength="1" oninput="focusNext(this, null)">
+            </div>
+
+            <button id="verify-btn" class="btn-success" onclick="verifyOTP()"><span id="t-verify-btn">Verify &
+                    Proceed</span></button>
+
+            <div id="resend-container" class="resend-link" onclick="resendOTP()"><span id="t-resend">Resend Code</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

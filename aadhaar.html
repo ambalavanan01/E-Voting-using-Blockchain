@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aadhaar Verification</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="notifications.js"></script>
+
+    <script>
+        const translations = {
+            en: {
+                title: "Aadhaar Verification",
+                subtitle: "Please enter your Aadhaar details for identity validation.",
+                number: "Aadhaar Number",
+                pin: "Security PIN",
+                btn: "Verify Identity",
+                warning: "* This is a secure simulation for academic purposes.",
+                errorNumber: "Please enter a valid 12-digit Aadhaar number",
+                errorPin: "Please enter a valid 4-digit Aadhaar PIN",
+                success: "Aadhaar verified successfully"
+            },
+            ta: {
+                title: "ஆதார் சரிபார்ப்பு",
+                subtitle: "அடையாள சரிபார்ப்பிற்கு உங்கள் ஆதார் விவரங்களை உள்ளிடவும்.",
+                number: "ஆதார் எண்",
+                pin: "பாதுகாப்பு பின் (PIN)",
+                btn: "அடையாளத்தை சரிபார்க்கவும்",
+                warning: "* இது கல்வி நோக்கங்களுக்கான ஒரு பாதுகாப்பான உருவகப்படுத்துதல் ஆகும்.",
+                errorNumber: "சரியான 12 இலக்க ஆதார் எண்ணை உள்ளிடவும்",
+                errorPin: "சரியான 4 இலக்க ஆதார் பின்னை உள்ளிடவும்",
+                success: "ஆதார் வெற்றிகரமாக சரிபார்க்கப்பட்டது"
+            }
+        };
+
+        const currentLang = localStorage.getItem('appLanguage') || 'en';
+
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('t-title').textContent = t.title;
+            document.getElementById('t-subtitle').textContent = t.subtitle;
+            document.getElementById('t-label-number').textContent = t.number;
+            document.getElementById('t-label-pin').textContent = t.pin;
+            document.getElementById('t-btn-verify').textContent = t.btn;
+            document.getElementById('t-warning').textContent = t.warning;
+        }
+
+        function verifyAadhaar() {
+            const t = translations[currentLang];
+            const aadhaar = document.getElementById("aadhaar").value.trim();
+            const pin = document.getElementById("pin").value.trim();
+
+            if (!/^\d{12}$/.test(aadhaar)) {
+                showNotification(t.errorNumber, "error");
+                return;
+            }
+
+            if (!/^\d{4}$/.test(pin)) {
+                showNotification(t.errorPin, "error");
+                return;
+            }
+
+            // Store for the interactive card
+            localStorage.setItem("currentAadhaarNumber", aadhaar);
+
+            showNotification(t.success, "success");
+            setTimeout(() => {
+                window.location.href = "aadhaar-image.html";
+            }, 1500);
+        }
+
+        window.addEventListener('DOMContentLoaded', updateUI);
+    </script>
+
+</head>
+
+<body>
+
+    <div class="card">
+        <h3 id="t-title">Aadhaar Verification</h3>
+        <p id="t-subtitle">Please enter your Aadhaar details for identity validation.</p>
+
+        <div class="input-group">
+            <label id="t-label-number" for="aadhaar">Aadhaar Number</label>
+            <input id="aadhaar" placeholder="1234 5678 9012" maxlength="12">
+        </div>
+
+        <div class="input-group">
+            <label id="t-label-pin" for="pin">Security PIN</label>
+            <input id="pin" type="password" placeholder="4-digit PIN" maxlength="4">
+        </div>
+
+        <button id="t-btn-verify" class="btn-warning" onclick="verifyAadhaar()">Verify Identity</button>
+
+        <div style="margin-top: 20px; font-size: 0.75rem; color: var(--text-muted);">
+            <p id="t-warning">* This is a secure simulation for academic purposes.</p>
+        </div>
+    </div>
+
+</body>
+
+</html>
