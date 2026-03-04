@@ -131,6 +131,9 @@
         }
     </style>
 
+    <!-- Load maintained face-api.js fork from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+
     <script>
         const translations = {
             en: {
@@ -140,7 +143,11 @@
                 verified: "Verification Successful",
                 confirmed: "Your identity has been confirmed against government records.",
                 proceedBtn: "Proceed Next",
-                notifSuccess: "Face verification successful!"
+                notifSuccess: "Face verification successful!",
+                loadingModels: "Initializing AI... Please wait",
+                faceNotFound: "Face not detected. Please adjust your position.",
+                matchError: "Face mismatch! Identity could not be verified.",
+                cameraError: "Error accessing camera. Please check permissions."
             },
             ta: {
                 title: "பயோமெட்ரிக் முக ஸ்கேன்",
@@ -149,42 +156,171 @@
                 verified: "சரிபார்ப்பு வெற்றிகரமாக முடிந்தது",
                 confirmed: "அரசு ஆவணங்களுடன் உங்கள் அடையாளம் உறுதிப்படுத்தப்பட்டுள்ளது.",
                 proceedBtn: "அடுத்து தொடரவும்",
-                notifSuccess: "முகச் சரிபார்ப்பு வெற்றிகரமாக முடிந்தது!"
+                notifSuccess: "முகச் சரிபார்ப்பு வெற்றிகரமாக முடிந்தது!",
+                loadingModels: "AI-ஐத் தொடங்குகிறது... தயவுசெய்து காத்திருக்கவும்",
+                faceNotFound: "முகம் கண்டறியப்படவில்லை. தயவுசெய்து உங்கள் நிலையைச் சரிசெய்யவும்.",
+                matchError: "முகம் பொருந்தவில்லை! அடையாளத்தை உறுதிப்படுத்த முடியவில்லை.",
+                cameraError: "கேமராவை அணுகுவதில் பிழை. அனுமதிகளைச் சரிபார்க்கவும்."
             }
         };
 
         const currentLang = localStorage.getItem('appLanguage') || 'en';
+        // Using vladmandic models which are more reliable
+        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+        const REFERENCE_IMAGE_PATH = 'ranjit.jpeg';
+
+        let faceMatcher = null;
+        let isVerificationComplete = false;
 
         function updateUI() {
             const t = translations[currentLang];
             document.getElementById('t-title').textContent = t.title;
             document.getElementById('t-subtitle').textContent = t.subtitle;
-            document.getElementById('t-scanning').textContent = t.scanning;
+            document.getElementById('t-scanning').textContent = t.loadingModels;
             document.getElementById('t-verified').textContent = t.verified;
             document.getElementById('t-confirmed').textContent = t.confirmed;
             document.getElementById('t-proceed-btn').textContent = t.proceedBtn;
         }
 
-        let timeLeft = 5;
-        let timerInterval;
-
-        window.onload = function () {
+        window.onload = async function () {
             updateUI();
-            startTimer();
+            try {
+                // Check for secure context only if definitively false
+                if (window.isSecureContext === false) {
+                    throw new Error("SECURE_CONTEXT_REQUIRED");
+                }
+
+                await startCamera();
+
+                try {
+                    await loadModels();
+                } catch (loadErr) {
+                    console.error("Model Loading Error:", loadErr);
+                    const modelErrMsg = currentLang === 'ta' ?
+                        "AI மாதிரிகளை ஏற்ற முடியவில்லை. இன்டர்நெட் இணைப்பைச் சரிபார்க்கவும்." :
+                        "Could not load AI models. Please check your internet connection and reload.";
+                    showNotification(modelErrMsg, "error", 15000);
+                    return; // Stop here
+                }
+
+                await prepareReferenceFace();
+                startVerificationLoop();
+
+            } catch (err) {
+                console.error("Initialization Error:", err);
+                let errorMessage = currentLang === 'ta' ? "தொடக்கத்தில் பிழை ஏற்பட்டது." : "Initialization error occurred.";
+
+                if (err.message === "SECURE_CONTEXT_REQUIRED") {
+                    errorMessage = currentLang === 'ta' ?
+                        "பாதுகாப்பான இணைப்பு (HTTPS/Localhost) தேவை. தயவுசெய்து சரிபார்க்கவும்." :
+                        "Secure context (HTTPS or localhost) is required for camera access.";
+                } else if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+                    errorMessage = currentLang === 'ta' ?
+                        "கேமரா அனுமதி மறுக்கப்பட்டது. பிரவுசர் செட்டிங்ஸில் அனுமதிக்கவும்." :
+                        "Camera permission denied. Please allow it in browser settings.";
+                } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+                    errorMessage = currentLang === 'ta' ?
+                        "கேமரா கிடைக்கவில்லை. இணைப்பைச் சரிபார்க்கவும்." :
+                        "No camera found. Please check your hardware connection.";
+                } else {
+                    // Fallback to generic camera error if it's likely camera related but not caught above
+                    errorMessage = translations[currentLang].cameraError;
+                }
+
+                showNotification(errorMessage, "error", 10000);
+            }
         };
 
-        function startTimer() {
-            const timerDisplay = document.getElementById('timer-count');
+        async function startCamera() {
+            const video = document.getElementById('video-feed');
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error("MediaDevices API not supported");
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "user" }
+            });
+            video.srcObject = stream;
+        }
 
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                if (timerDisplay) timerDisplay.innerText = timeLeft;
+        async function loadModels() {
+            console.log("Loading models from:", MODEL_URL);
+            try {
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                console.log("All models loaded successfully");
+            } catch (e) {
+                console.error("Critical error during model loading:", e);
+                throw e;
+            }
+        }
 
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    completeVerification();
+        async function prepareReferenceFace() {
+            console.log("Processing reference image:", REFERENCE_IMAGE_PATH);
+            try {
+                const img = await faceapi.fetchImage(REFERENCE_IMAGE_PATH);
+
+                // Try SSD Mobilenet V1 first (more accurate)
+                let detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+
+                if (!detections) {
+                    console.warn("SSD detector failed to find face in reference image. Trying TinyFaceDetector...");
+                    // Try Tiny Face Detector as fallback
+                    detections = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
                 }
-            }, 1000);
+
+                if (!detections) {
+                    console.error("CRITICAL: All face detectors failed for reference image.");
+                    showNotification("Reference identity error. Please contact support.", "error", 15000);
+                    return;
+                }
+
+                faceMatcher = new faceapi.FaceMatcher(detections);
+                console.log("Reference identity verified and matcher initialized.");
+            } catch (err) {
+                console.error("Reference image processing error:", err);
+                showNotification("Could not process reference identity.", "error");
+            }
+        }
+
+        async function startVerificationLoop() {
+            const video = document.getElementById('video-feed');
+            const statusLabel = document.getElementById('t-scanning');
+            const t = translations[currentLang];
+
+            statusLabel.textContent = t.scanning;
+
+            const interval = setInterval(async () => {
+                if (isVerificationComplete) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                const detections = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+
+                if (detections) {
+                    // Update status to show we see A face
+                    const matchingText = currentLang === 'ta' ? "சரிபார்க்கிறது..." : "Matching face...";
+                    statusLabel.textContent = matchingText;
+                    statusLabel.style.color = "var(--primary)";
+
+                    const match = faceMatcher.findBestMatch(detections.descriptor);
+                    console.log("Match Result:", match.toString());
+
+                    // Standard threshold is 0.6. Using it to be less restrictive.
+                    if (match.label !== 'unknown' && match.distance < 0.6) {
+                        isVerificationComplete = true;
+                        completeVerification();
+                    }
+                } else {
+                    // Reset to scanning if no face seen
+                    statusLabel.textContent = t.scanning;
+                    statusLabel.style.color = "var(--text-muted)";
+                }
+            }, 500);
         }
 
         function completeVerification() {
@@ -217,9 +353,6 @@
         </div>
 
         <div id="scanning-ui" class="scan-status">
-            <div class="timer-circle">
-                <span id="timer-count" style="animation: none;">5</span>
-            </div>
             <p id="t-scanning" style="font-weight: 600; color: var(--text-muted);">Scanning face... Please stay still
             </p>
         </div>
