@@ -167,7 +167,7 @@
         const currentLang = localStorage.getItem('appLanguage') || 'en';
         // Using vladmandic models which are more reliable
         const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-        const REFERENCE_IMAGE_PATH = 'ranjit.jpeg';
+        const REFERENCE_IMAGES = ['ranjit.jpeg', 'ambalavanan.webp'];
 
         let faceMatcher = null;
         let isVerificationComplete = false;
@@ -259,27 +259,41 @@
         }
 
         async function prepareReferenceFace() {
-            console.log("Processing reference image:", REFERENCE_IMAGE_PATH);
+            console.log("Processing reference images:", REFERENCE_IMAGES);
             try {
-                const img = await faceapi.fetchImage(REFERENCE_IMAGE_PATH);
+                const labeledDescriptors = [];
 
-                // Try SSD Mobilenet V1 first (more accurate)
-                let detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                for (const imagePath of REFERENCE_IMAGES) {
+                    console.log(`Processing: ${imagePath}`);
+                    const img = await faceapi.fetchImage(imagePath);
 
-                if (!detections) {
-                    console.warn("SSD detector failed to find face in reference image. Trying TinyFaceDetector...");
-                    // Try Tiny Face Detector as fallback
-                    detections = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                    // Try SSD Mobilenet V1 first (more accurate)
+                    let detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+
+                    if (!detections) {
+                        console.warn(`SSD detector failed for ${imagePath}. Trying TinyFaceDetector...`);
+                        // Try Tiny Face Detector as fallback
+                        detections = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                    }
+
+                    if (detections) {
+                        // Create a label from the filename (e.g., "ranjit")
+                        const label = imagePath.split('.')[0];
+                        labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(label, [detections.descriptor]));
+                        console.log(`Successfully processed: ${imagePath} as ${label}`);
+                    } else {
+                        console.error(`FAILED to find face in: ${imagePath}`);
+                    }
                 }
 
-                if (!detections) {
-                    console.error("CRITICAL: All face detectors failed for reference image.");
+                if (labeledDescriptors.length === 0) {
+                    console.error("CRITICAL: All face detectors failed for ALL reference images.");
                     showNotification("Reference identity error. Please contact support.", "error", 15000);
                     return;
                 }
 
-                faceMatcher = new faceapi.FaceMatcher(detections);
-                console.log("Reference identity verified and matcher initialized.");
+                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors);
+                console.log(`Reference identities verified. Loaded ${labeledDescriptors.length} descriptors.`);
             } catch (err) {
                 console.error("Reference image processing error:", err);
                 showNotification("Could not process reference identity.", "error");
